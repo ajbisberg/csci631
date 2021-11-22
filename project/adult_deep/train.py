@@ -6,7 +6,7 @@ from tqdm import tqdm
 def train(model, data_loader, batch_size=128, use_dp=False):
     model.train()
     criterion = nn.BCELoss()
-    optimizer = optim.SGD(model.parameters(), lr=0.1)
+    optimizer = optim.SGD(model.parameters(), lr=1e-4)
 
     if use_dp:
         privacy_engine = PrivacyEngine(
@@ -20,7 +20,7 @@ def train(model, data_loader, batch_size=128, use_dp=False):
         privacy_engine.attach(optimizer)
 
     running_loss = 0
-    for epoch in range(10):
+    for epoch in range(100):
         for i, (rows, labels) in enumerate(data_loader):
             optimizer.zero_grad()
             predictions = model(rows)

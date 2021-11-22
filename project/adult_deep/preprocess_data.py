@@ -1,5 +1,5 @@
 import pandas as pd
-from sklearn.preprocessing import LabelBinarizer, MinMaxScaler, OneHotEncoder, OrdinalEncoder
+from sklearn.preprocessing import LabelBinarizer, MinMaxScaler, OneHotEncoder
 from sklearn.compose import make_column_selector, make_column_transformer
 from sklearn.pipeline import Pipeline
 
@@ -136,13 +136,13 @@ SEXES=[
 
 def create_row_transformer(df):
     column_transformer = make_column_transformer(
-        (OrdinalEncoder(categories=[RACES]), ['race']),
-        (OrdinalEncoder(categories=[MARITAL_STATUSES]), ['marital_status']),
-        (OrdinalEncoder(categories=[RELATIONSHIPS]), ['relationship']),
-        (OrdinalEncoder(categories=[WORKCLASSES]), ['workclass']),
-        (OrdinalEncoder(categories=[NATIVE_COUNTRIES]), ['native_country']),
-        (OrdinalEncoder(categories=[OCCUPATIONS]), ['occupation']),
-        (OneHotEncoder(categories=[SEXES], drop='if_binary'), ['sex']),
+        (OneHotEncoder(categories=[RACES], sparse=False), ['race']),
+        (OneHotEncoder(categories=[MARITAL_STATUSES], sparse=False), ['marital_status']),
+        (OneHotEncoder(categories=[RELATIONSHIPS], sparse=False), ['relationship']),
+        (OneHotEncoder(categories=[WORKCLASSES], sparse=False), ['workclass']),
+        (OneHotEncoder(categories=[NATIVE_COUNTRIES], sparse=False), ['native_country']),
+        (OneHotEncoder(categories=[OCCUPATIONS], sparse=False), ['occupation']),
+        (OneHotEncoder(categories=[SEXES], sparse=False, drop='if_binary'), ['sex']),
         remainder='passthrough')
     transformer = Pipeline([
         ('column_transformer', column_transformer),
