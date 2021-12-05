@@ -1,7 +1,11 @@
+import argparse
+import numpy as np
 import pandas as pd
+import pickle
 from sklearn.preprocessing import LabelBinarizer, MinMaxScaler, OneHotEncoder
 from sklearn.compose import make_column_selector, make_column_transformer
 from sklearn.pipeline import Pipeline
+
 
 FEATURES=[
     'age',
@@ -155,22 +159,78 @@ def create_row_transformer(df):
 
 def create_label_transformer(labels):
     transformer = LabelBinarizer()
-    transformer.classes_ = ['<=50K', '>50K']
     transformer.fit(labels)
 
     return transformer
 
 
-def load_data(fname):
-    df = pd.read_csv(fname, names=FEATURES, skipinitialspace=True)
 
+def split_data(rows, labels, train_proportion=0.7,
+               cross_val_proportion=0.15, test_proportion=0.15):
+    assert(train_proportion + cross_val_proportion + test_proportion == 1)
+    indices = np.arange(len(rows))
+    np.random.shuffle(indices)
+
+    train_cutoff = int(len(indices) * train_proportion)
+    cross_val_cutoff = int(len(indices) * (train_proportion + cross_val_proportion))
+
+    train_rows = rows[indices[:train_cutoff]]
+    train_labels = labels[indices[:train_cutoff]]
+    cross_val_rows = rows[indices[train_cutoff:cross_val_cutoff]]
+    cross_val_labels = labels[indices[train_cutoff:cross_val_cutoff]]
+    test_rows = rows[indices[cross_val_cutoff:]]
+    test_labels = labels[indices[cross_val_cutoff:]]
+
+    return train_rows, train_labels, cross_val_rows, cross_val_labels, test_rows, test_labels
+
+
+def split_labels(df):
     labels = df[['salary']]
     rows = df.drop(columns=['education', 'salary'])
+
+    return rows, labels
+
+
+def main(train_data_path, test_data_path):
+    train_df = pd.read_csv(train_data_path, names=FEATURES, skipinitialspace=True)
+    test_df = pd.read_csv(test_data_path, names=FEATURES, skipinitialspace=True, skiprows=1)
+
+    df = pd.concat([train_df, test_df])
+
+    rows, labels = split_labels(df)
+    labels = labels.replace('<=50K.', '<=50K').replace('>50K.', '>50K')
 
     row_transformer = create_row_transformer(rows)
     label_transformer = create_label_transformer(labels)
 
-    transformed_rows = row_transformer.transform(rows)
-    transformed_labels = label_transformer.transform(labels)
+    rows = row_transformer.transform(rows)
+    labels = label_transformer.transform(labels)
 
-    return transformed_rows, transformed_labels
+    train_rows, train_labels, cross_val_rows, cross_val_labels, test_rows, test_labels = split_data(rows, labels)
+
+    with open('adult.pickle', 'wb') as f:
+        data = {
+            'row_transformer': row_transformer,
+            'label_transformer': label_transformer,
+            'train_rows': train_rows,
+            'train_labels': train_labels,
+            'cross_val_rows': cross_val_rows,
+            'cross_val_labels': cross_val_labels,
+            'test_rows': test_rows,
+            'test_labels': test_labels,
+        }
+        pickle.dump(data, f)
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(
+                      description='Re-split Adult dataset')
+    parser.add_argument('--train-data-path',
+                        help='Path to Adult training data (CSV)',
+                        required=True)
+    parser.add_argument('--test-data-path',
+                        help='Path to Adult test data (CSV)',
+                        required=True)
+    args = parser.parse_args()
+
+    main(args.train_data_path, args.test_data_path)
