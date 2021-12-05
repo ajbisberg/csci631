@@ -47,6 +47,7 @@ def train(model, train_loader, cross_val_loader, training_params):
     running_loss = 0
     for epoch in range(training_params.num_epochs):
         for i, (rows, labels) in tqdm(enumerate(train_loader)):
+            model.train()
             optimizer.zero_grad()
             predictions = model(rows)
             loss = criterion(predictions, labels)
@@ -64,6 +65,7 @@ def train(model, train_loader, cross_val_loader, training_params):
                 running_loss = 0
 
         if cross_val_loader:
+            model.eval()
             with torch.no_grad():
                 correct, total = 0, 0
                 for i, (rows, labels) in tqdm(enumerate(cross_val_loader)):
@@ -73,7 +75,3 @@ def train(model, train_loader, cross_val_loader, training_params):
                 print('Cross Val Accuracy: %.3f' % (correct / total))
 
     return model
-
-
-def test(model, test_loader):
-    pass

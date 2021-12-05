@@ -1,11 +1,16 @@
 import argparse
+from datetime import datetime
+from os import makedirs
+from os.path import join
+import torch
 
 from data import DatasetChoice, load_data
 from model import AdultModel, HousingModel
 from train import DpSgdParameters, train, TrainingParameters
+from test import test
 
 
-def main(dataset_choice: DatasetChoice, data_path, training_params: TrainingParameters):
+def main(dataset_choice: DatasetChoice, data_path, training_params: TrainingParameters, save_model=False):
     train_dataloader, cross_val_dataloader, test_dataloader = load_data(dataset_choice, data_path, training_params.batch_size)
 
     if dataset_choice == DatasetChoice.HOUSING:
@@ -16,6 +21,13 @@ def main(dataset_choice: DatasetChoice, data_path, training_params: TrainingPara
         raise NotImplementedError('No model available for dataset choice.')
 
     model = train(model, train_dataloader, cross_val_dataloader, training_params)
+
+    if save_model:
+        now_str = datetime.now().strftime("%Y_%m_%d-%I_%M_%S_%p")
+        makedirs('models', exist_ok=True)
+        torch.save(model, join('models', 'model_' + now_str + '.pickle'))
+
+    test(model, test_dataloader)
 
 
 if __name__ == '__main__':
@@ -55,6 +67,9 @@ if __name__ == '__main__':
                         help='Max gradient norm for DP-SGD',
                         type=float,
                         default=1.0)
+    parser.add_argument('--save-model',
+                        help='Write trained model to the disk',
+                        action='store_true')
     args = parser.parse_args()
 
     dataset_choice = DatasetChoice[args.dataset]
@@ -76,4 +91,4 @@ if __name__ == '__main__':
         dp_params=dp_sgd_params if args.use_dp else None
     )
 
-    main(dataset_choice, args.data_path, training_params)
+    main(dataset_choice, args.data_path, training_params, save_model=args.save_model)
