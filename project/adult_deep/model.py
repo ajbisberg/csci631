@@ -17,3 +17,20 @@ class AdultModel(nn.Module):
 
     def name(self):
         return "AdultModel"
+
+
+class HousingModel(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.sequence = nn.Sequential(
+            nn.Linear(60, 30),
+            nn.ReLU(),
+            nn.Linear(30, 1),
+            nn.Sigmoid(),
+        )
+
+    def forward(self, x):
+        return self.sequence(x)
+
+    def name(self):
+        return "HousingModel"

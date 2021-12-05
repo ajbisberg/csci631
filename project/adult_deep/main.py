@@ -1,34 +1,21 @@
 import argparse
-import pickle
-from torch import Tensor
-from torch.utils.data import DataLoader, TensorDataset
 
-from model import AdultModel
-from train import train
+from data import DatasetChoice, load_data
+from model import AdultModel, HousingModel
+from train import DpSgdParameters, train, TrainingParameters
 
 
-def main(data_path, use_dp, batch_size=128):
-    with open(data_path, 'rb') as f:
-        data = pickle.load(f)
+def main(dataset_choice: DatasetChoice, data_path, training_params: TrainingParameters):
+    train_dataloader, cross_val_dataloader, test_dataloader = load_data(dataset_choice, data_path, training_params.batch_size)
 
-    train_rows = Tensor(data['train_rows'])
-    train_labels = Tensor(data['train_labels'])
-    train_dataset = TensorDataset(train_rows, train_labels)
-    train_dataloader = DataLoader(train_dataset, batch_size=batch_size)
+    if dataset_choice == DatasetChoice.HOUSING:
+        model = HousingModel()
+    elif dataset_choice == DatasetChoice.ADULT:
+        model = AdultModel()
+    else:
+        raise NotImplementedError('No model available for dataset choice.')
 
-    cross_val_rows = Tensor(data['cross_val_rows'])
-    cross_val_labels = Tensor(data['cross_val_labels'])
-    cross_val_dataset = TensorDataset(cross_val_rows, cross_val_labels)
-    cross_val_dataloader = DataLoader(cross_val_dataset)
-
-    test_rows = Tensor(data['test_rows'])
-    test_labels = Tensor(data['test_labels'])
-    test_dataset = TensorDataset(test_rows, test_labels)
-    test_dataloader = DataLoader(test_dataset)
-
-    model = AdultModel()
-
-    train(model, train_dataloader, cross_val_dataloader, batch_size=batch_size, use_dp=use_dp)
+    model = train(model, train_dataloader, cross_val_dataloader, training_params)
 
 
 if __name__ == '__main__':
@@ -37,9 +24,56 @@ if __name__ == '__main__':
     parser.add_argument('--data-path',
                         help='Path to pickled data',
                         required=True)
+    parser.add_argument('--dataset',
+                        choices=['HOUSING', 'ADULT'],
+                        help='Choice of dataset, adult or housing',
+                        required=True)
+    parser.add_argument('--num-epochs',
+                        help='Number of epochs in training',
+                        type=int,
+                        default=10)
+    parser.add_argument('--batch-size',
+                        help='Training batch size for SGD',
+                        type=int,
+                        default=128)
+    parser.add_argument('-lr', '--learning-rate',
+                        help='Optimizer learning rate',
+                        type=float,
+                        default=1e-4)
     parser.add_argument('--use-dp',
-                        help='Use DP-SGD',
+                        help='Whether to use SGD or DP-SGD',
                         action='store_true')
+    parser.add_argument('--target-epsilon',
+                        help='Target epsilon for DP-SGD',
+                        type=float,
+                        default=1)
+    parser.add_argument('--target-delta',
+                        help='Target delta for DP-SGD',
+                        type=float,
+                        default=1e-5)
+    parser.add_argument('--max-grad-norm',
+                        help='Max gradient norm for DP-SGD',
+                        type=float,
+                        default=1.0)
     args = parser.parse_args()
 
-    main(args.data_path, args.use_dp)
+    dataset_choice = DatasetChoice[args.dataset]
+
+    if args.use_dp:
+        kwargs = {
+            'target_epsilon': args.target_epsilon,
+            'target_delta': args.target_delta,
+        }
+        if args.max_grad_norm:
+            kwargs['max_grad_norm'] = args.max_grad_norm
+        dp_sgd_params = DpSgdParameters(**kwargs)
+
+    training_params = TrainingParameters(
+        num_epochs=args.num_epochs,
+        batch_size=args.batch_size,
+        learning_rate=args.learning_rate,
+        use_dp=args.use_dp,
+        dp_params=dp_sgd_params if args.use_dp else None
+    )
+
+    main(dataset_choice, args.data_path, training_params)
