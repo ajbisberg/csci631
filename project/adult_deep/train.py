@@ -28,35 +28,31 @@ class TrainingParameters:
     dp_params: DpSgdParameters = None
 
 
-def cross_validate(model, cross_val_loader):
+def cross_validate(model, criterion, cross_val_loader):
     model.eval()
     with torch.no_grad():
-        correct, total = 0, 0
         all_predictions, all_labels = [], []
-        for i, (rows, labels) in tqdm(enumerate(cross_val_loader)):
+        for i, (rows, labels) in tqdm(enumerate(cross_val_loader), leave=False):
             predictions = model(rows)
             all_predictions.append(predictions)
             all_labels.append(labels)
-            correct += int(sum(predictions.round() == labels))
-            total += len(labels)
 
         predictions = torch.vstack(all_predictions)
         labels = torch.vstack(all_labels)
 
-        print('Cross Val Accuracy: %.3f' % (correct / total))
-        score = roc_auc_score(labels, predictions)
+        loss = criterion(predictions, labels)
 
-        print('Cross Val ROC AUC Score: %.3f' % score)
+        accuracy = accuracy_score(predictions.round(), labels)
+
+        score = roc_auc_score(labels, predictions)
 
         fpr, tpr, thresholds = roc_curve(labels, predictions, pos_label=1)
         optimal_idx = np.argmax(tpr - fpr)
         optimal_threshold = thresholds[optimal_idx]
 
-        print('Cross Val Threshold: %.3f' % optimal_threshold)
-
         tresholded_accuracy = accuracy_score(predictions > optimal_threshold, labels == 1)
 
-        print('Cross Val Thresholded Accuracy: %.3f' % tresholded_accuracy)
+        print('Cross Val - Loss: {:.3f}, Accuracy: {:.3f}, Thresholded Accuracy: {:.3f}, Score: {:.3f}, Threshold: {:.3f}'.format(loss, accuracy, tresholded_accuracy, score, optimal_threshold))
 
     return optimal_threshold
 
@@ -80,7 +76,8 @@ def train(model, train_loader, cross_val_loader, training_params):
 
     running_loss = 0
     for epoch in range(training_params.num_epochs):
-        for i, (rows, labels) in tqdm(enumerate(train_loader)):
+        print('----- EPOCH %d ------' % epoch)
+        for i, (rows, labels) in tqdm(enumerate(train_loader), leave=False):
             model.train()
             optimizer.zero_grad()
             predictions = model(rows)
@@ -98,15 +95,8 @@ def train(model, train_loader, cross_val_loader, training_params):
                     print('Privacy Budget Exhausted: %5f' % privacy_engine.get_epsilon(delta=training_params.dp_params.target_delta))
                 running_loss = 0
 
-        model.eval()
-        with torch.no_grad():
-            correct, total = 0, 0
-            for i, (rows, labels) in tqdm(enumerate(cross_val_loader)):
-                predictions = model(rows)
-                correct += int(sum(predictions.round() == labels))
-                total += len(labels)
-            print('Cross Val Accuracy: %.3f' % (correct / total))
+        cross_validate(model, criterion, cross_val_loader)
 
-    optimal_threshold = cross_validate(model, cross_val_loader)
+    optimal_threshold = cross_validate(model, criterion, cross_val_loader)
 
     return model, optimal_threshold
