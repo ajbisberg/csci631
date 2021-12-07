@@ -30,9 +30,9 @@ def get_adult_data_loader(rows, labels, batch_size):
 
 
 def load_housing_data(data_path, batch_size=128):
-    train_dataloader = get_housing_dataloader(data_path, 'X_test.gz', 'y_test.gz', batch_size)
-    cross_val_dataloader = get_housing_dataloader(data_path, 'X_test.gz', 'y_test.gz', batch_size)
-    test_dataloader = get_housing_dataloader(data_path, 'X_test.gz', 'y_test.gz', batch_size)
+    train_dataloader = get_housing_dataloader(data_path, 'train_rows.pickle.gz', 'train_labels.pickle.gz', batch_size)
+    cross_val_dataloader = get_housing_dataloader(data_path, 'cross_val_rows.pickle.gz', 'cross_val_labels.pickle.gz', 1024)
+    test_dataloader = get_housing_dataloader(data_path, 'test_rows.pickle.gz', 'test_labels.pickle.gz', 1024)
 
     return train_dataloader, cross_val_dataloader, test_dataloader
 
