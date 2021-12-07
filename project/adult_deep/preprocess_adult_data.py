@@ -26,11 +26,11 @@ FEATURES=[
 ]
 
 RACES=[
-    "White",
-    "Asian-Pac-Islander",
-    "Amer-Indian-Eskimo",
-    "Other",
-    "Black"
+    "Black",
+    "White"
+    # "Asian-Pac-Islander",
+    # "Amer-Indian-Eskimo",
+    # "Other",
 ]
 
 MARITAL_STATUSES=[
@@ -133,14 +133,14 @@ SALARIES=[
 ]
 
 SEXES=[
-    "Male",
-    "Female"
+    "Female",
+    "Male"
 ]
 
 
 def create_row_transformer(df):
     column_transformer = make_column_transformer(
-        (OneHotEncoder(categories=[RACES], sparse=False), ['race']),
+        (OneHotEncoder(categories=[RACES], sparse=False, drop='if_binary'), ['race']),
         (OneHotEncoder(categories=[MARITAL_STATUSES], sparse=False), ['marital_status']),
         (OneHotEncoder(categories=[RELATIONSHIPS], sparse=False), ['relationship']),
         (OneHotEncoder(categories=[WORKCLASSES], sparse=False), ['workclass']),
@@ -198,6 +198,9 @@ def main(train_data_path, test_data_path):
     df = pd.concat([train_df, test_df])
 
     rows, labels = split_labels(df)
+    idx = rows.race.isin(('White', 'Black'))
+    rows = rows[idx]
+    labels = labels[idx]
     labels = labels.replace('<=50K.', '<=50K').replace('>50K.', '>50K')
 
     row_transformer = create_row_transformer(rows)

@@ -6,7 +6,7 @@ class AdultModel(nn.Module):
     def __init__(self):
         super().__init__()
         self.sequence = nn.Sequential(
-            nn.Linear(91, 50),
+            nn.Linear(87, 50),
             nn.ReLU(),
             nn.Linear(50, 1),
             nn.Sigmoid(),
