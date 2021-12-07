@@ -13,8 +13,10 @@ class DatasetChoice(Enum):
     HOUSING = auto()
 
 
-def get_housing_dataloader(data_path, rows_fname, labels_fname, batch_size):
+def get_housing_dataloader(data_path, rows_fname, labels_fname, batch_size=None):
     rows = pd.read_pickle(join(data_path, rows_fname))
+    if batch_size == None:
+        batch_size = len(rows)
     rows = torch.from_numpy(rows.astype(np.float32).values)
     labels = pd.read_pickle(join(data_path, labels_fname))
     labels = torch.from_numpy(labels.astype(np.float32).values).unsqueeze(dim=1)
@@ -31,8 +33,8 @@ def get_adult_data_loader(rows, labels, batch_size):
 
 def load_housing_data(data_path, batch_size=128):
     train_dataloader = get_housing_dataloader(data_path, 'train_rows.pickle.gz', 'train_labels.pickle.gz', batch_size)
-    cross_val_dataloader = get_housing_dataloader(data_path, 'cross_val_rows.pickle.gz', 'cross_val_labels.pickle.gz', 1024)
-    test_dataloader = get_housing_dataloader(data_path, 'test_rows.pickle.gz', 'test_labels.pickle.gz', 1024)
+    cross_val_dataloader = get_housing_dataloader(data_path, 'cross_val_rows.pickle.gz', 'cross_val_labels.pickle.gz')
+    test_dataloader = get_housing_dataloader(data_path, 'test_rows.pickle.gz', 'test_labels.pickle.gz')
 
     return train_dataloader, cross_val_dataloader, test_dataloader
 
@@ -43,9 +45,9 @@ def load_adult_data(data_path, batch_size=128):
 
     train_dataloader = get_adult_data_loader(data['train_rows'], data['train_labels'], batch_size)
 
-    cross_val_dataloader = get_adult_data_loader(data['cross_val_rows'], data['cross_val_labels'], batch_size)
+    cross_val_dataloader = get_adult_data_loader(data['cross_val_rows'], data['cross_val_labels'], len(data['cross_val_rows']))
 
-    test_dataloader = get_adult_data_loader(data['test_rows'], data['test_labels'], batch_size)
+    test_dataloader = get_adult_data_loader(data['test_rows'], data['test_labels'], len(data['test_rows']))
 
     return train_dataloader, cross_val_dataloader, test_dataloader
 
