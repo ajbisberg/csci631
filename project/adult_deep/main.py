@@ -58,7 +58,7 @@ def main(meta_params: MetaParameters, training_params: TrainingParameters):
     if training_params.use_dp:
         for target_epsilon in meta_params.target_epsilons:
             training_params.dp_params.target_epsilon = target_epsilon
-            with Pool(max(5, cpu_count() - 2)) as pool:
+            with Pool(max(meta_params.num_trials, cpu_count() - 2)) as pool:
                 agg_results = pool.starmap(train_test, [(meta_params, training_params)] * meta_params.num_trials)
             results = np.mean(agg_results, axis=0)
             res[target_epsilon] = results
