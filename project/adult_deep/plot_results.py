@@ -25,7 +25,7 @@ def save_results_fig(dataset_choice, fname, results):
     if dataset_choice == DatasetChoice.ADULT:
         acc, dp_g, dp_r, eo_g, eo_r = (0.79104478, 0.30066256, 0.50714886, 0.26636978, 0.5203459)
     elif dataset_choice == DatasetChoice.HOUSING:
-        acc, dp_g, dp_r, eo_g, eo_r = (0, 0, 0, 0, 0)
+        acc, dp_g, dp_r, eo_g, eo_r = (0.68441297, 0.89828961, 0.7055424,  0.84102496, 0.61121419)
     plt.axhline(acc, color='r', linestyle='--')
     plt.axhline(dp_g, color='g', linestyle='--')
     plt.axhline(dp_r, color='b', linestyle='--')
