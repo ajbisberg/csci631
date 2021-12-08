@@ -1,4 +1,5 @@
 import argparse
+import dataclasses
 from dataclasses import dataclass
 from datetime import datetime
 from multiprocessing import Pool, cpu_count
@@ -54,14 +55,29 @@ def main(meta_params: MetaParameters, training_params: TrainingParameters):
     training_params.batch_size = get_batch_size(meta_params)
     print('Using batch size', training_params.batch_size)
 
+    if not training_params.use_dp:
+        with Pool(max(meta_params.num_trials, cpu_count() - 2)) as pool:
+            agg_results = pool.starmap(train_test, [(meta_params, training_params)] * meta_params.num_trials)
+        results = np.mean(agg_results, axis=0)
+        print('-------RESULTS----------')
+        print(results)
+        return
+
     res = {}
-    if training_params.use_dp:
+    params = []
+
+    for target_epsilon in meta_params.target_epsilons:
+        dp = dataclasses.replace(training_params.dp_params)
+        tp = dataclasses.replace(training_params)
+        dp.target_epsilon = target_epsilon
+        tp.dp_params = dp
+        params.extend([(meta_params, tp)] * meta_params.num_trials)
+
+    with Pool(max(meta_params.num_trials, cpu_count() - 2)) as pool:
+        agg_results = pool.starmap(train_test, params)
         for target_epsilon in meta_params.target_epsilons:
-            training_params.dp_params.target_epsilon = target_epsilon
-            with Pool(max(meta_params.num_trials, cpu_count() - 2)) as pool:
-                agg_results = pool.starmap(train_test, [(meta_params, training_params)] * meta_params.num_trials)
-            results = np.mean(agg_results, axis=0)
-            res[target_epsilon] = results
+            res[target_epsilon] = np.mean(agg_results[:meta_params.num_trials], axis=0)
+            agg_results = agg_results[meta_params.num_trials:]
 
     now_str = datetime.now().strftime("%Y_%m_%d-%I_%M_%S_%p")
     makedirs('results', exist_ok=True)
@@ -72,7 +88,7 @@ def main(meta_params: MetaParameters, training_params: TrainingParameters):
         pickle.dump(res, f)
 
     makedirs('figs', exist_ok=True)
-    save_results_fig(join('figs', 'fig_' + name), res)
+    save_results_fig(meta_params.dataset_choice, join('figs', 'fig_' + name), res)
 
 
 if __name__ == '__main__':

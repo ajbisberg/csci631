@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 
+from data import DatasetChoice
 
 def smooth(scalars, weight):  # Weight between 0 and 1
     last = scalars[0]  # First value in the plot (first timestep)
@@ -11,7 +12,7 @@ def smooth(scalars, weight):  # Weight between 0 and 1
     return smoothed
 
 
-def save_results_fig(fname, results):
+def save_results_fig(dataset_choice, fname, results):
     eps_list = sorted(list(results.keys()))
     acc_list = [results[ep][0] for ep in eps_list]
     dem_parity_list_gender = [results[ep][1] for ep in eps_list]
@@ -21,11 +22,15 @@ def save_results_fig(fname, results):
 
     plt.suptitle('DP-SGD Classifier Accuracy and Fairness Metrics vs Epsilon')
     plt.title('Dashed and Solid Lines for Standard and Private Classifiers', fontsize='small')
-    # plt.axhline(acc, color='r', linestyle='--')
-    # plt.axhline(dp_g, color='g', linestyle='--')
-    # plt.axhline(dp_r, color='b', linestyle='--')
-    # plt.axhline(eo_g, color='m', linestyle='--')
-    # plt.axhline(eo_r, color='y', linestyle='--')
+    if dataset_choice == DatasetChoice.ADULT:
+        acc, dp_g, dp_r, eo_g, eo_r = (0.79104478, 0.30066256, 0.50714886, 0.26636978, 0.5203459)
+    elif dataset_choice == DatasetChoice.HOUSING:
+        acc, dp_g, dp_r, eo_g, eo_r = (0, 0, 0, 0, 0)
+    plt.axhline(acc, color='r', linestyle='--')
+    plt.axhline(dp_g, color='g', linestyle='--')
+    plt.axhline(dp_r, color='b', linestyle='--')
+    plt.axhline(eo_g, color='m', linestyle='--')
+    plt.axhline(eo_r, color='y', linestyle='--')
 
     plt.semilogx(eps_list, smooth(acc_list,0.6), label='Accuracy', color='r')
     plt.semilogx(eps_list, smooth(dem_parity_list_gender,0.6), label='Dem Par Gender', color='g')
